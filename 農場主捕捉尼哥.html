@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>🥊 像素格鬥遊戲</title>
+<style>
+  body {
+    background: #111;
+    color: white;
+    text-align: center;
+    font-family: sans-serif;
+  }
+  canvas {
+    background: #ccc;
+    display: block;
+    margin: auto;
+    image-rendering: pixelated;
+    border: 4px solid #000;
+  }
+</style>
+</head>
+<body>
+
+<h1>🥊 像素格鬥遊戲</h1>
+<p>← → 移動 ｜ 空白鍵 攻擊</p>
+
+<canvas id="game" width="600" height="300"></canvas>
+<h2 id="status"></h2>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scale = 4;
+
+// 🎨 調色盤（角色外觀）
+const PALETTE = {
+  player: {
+    skin: "#f2c9a0",   // 較白膚色
+    hair: "#5d4037",
+    shirt1: "#e53935",
+    shirt2: "#c62828",
+    pants: "#424242",
+    shoes: "#000",
+    eye: "#000"
+  },
+  enemy: {
+    skin: "#4e342e",   // 較黑膚色
+    hair: "#1b1b1b",
+    shirt1: "#1e88e5",
+    shirt2: "#1565c0",
+    pants: "#263238",
+    shoes: "#000",
+    eye: "#000"
+  }
+};
+
+// 16×16 像素人物（結構共用）
+const sprite = [
+ [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],
+ [0,0,1,2,2,2,2,2,2,2,2,2,1,0,0,0],
+ [0,1,2,3,3,3,3,3,3,3,3,3,2,1,0,0],
+ [0,1,2,3,4,3,3,3,3,3,4,3,2,1,0,0],
+ [0,1,2,3,3,3,3,3,3,3,3,3,2,1,0,0],
+ [0,0,1,2,2,2,2,2,2,2,2,2,1,0,0,0],
+ [0,0,0,0,5,5,5,5,5,5,5,5,0,0,0,0],
+ [0,0,0,0,5,5,5,5,5,5,5,5,0,0,0,0],
+ [0,0,0,0,6,6,6,6,6,6,6,6,0,0,0,0],
+ [0,0,0,0,6,6,6,6,6,6,6,6,0,0,0,0],
+ [0,0,0,0,7,7,0,0,0,0,7,7,0,0,0,0],
+ [0,0,0,0,7,7,0,0,0,0,7,7,0,0,0,0],
+ [0,0,0,0,8,8,0,0,0,0,8,8,0,0,0,0],
+ [0,0,0,8,8,8,0,0,0,0,8,8,8,0,0,0],
+ [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+ [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+];
+
+// 對應顏色
+function getColor(v, p) {
+  return {
+    1: p.hair,
+    2: p.hair,
+    3: p.skin,
+    4: p.eye,
+    5: p.shirt1,
+    6: p.shirt2,
+    7: p.pants,
+    8: p.shoes
+  }[v];
+}
+
+function drawSprite(x, y, palette) {
+  for (let r = 0; r < 16; r++) {
+    for (let c = 0; c < 16; c++) {
+      const v = sprite[r][c];
+      if (v) {
+        ctx.fillStyle = getColor(v, palette);
+        ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+      }
+    }
+  }
+}
+
+// 角色資料
+const player = { x: 120, y: 170, hp: 100 };
+const enemy  = { x: 420, y: 170, hp: 100 };
+
+let keys = {};
+let attacking = false;
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function attack(a, b) {
+  if (Math.abs(a.x - b.x) < 40) {
+    b.hp -= 10;
+    if (b.hp < 0) b.hp = 0;
+  }
+}
+
+function enemyAI() {
+  if (enemy.x > player.x + 30) enemy.x -= 1;
+  if (enemy.x < player.x - 30) enemy.x += 1;
+  if (Math.random() < 0.01) attack(enemy, player);
+}
+
+function drawHP(x, y, hp, color) {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(x, y, 104, 14);
+  ctx.fillStyle = color;
+  ctx.fillRect(x + 2, y + 2, hp, 10);
+}
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (keys["ArrowLeft"] && player.x > 0) player.x -= 3;
+  if (keys["ArrowRight"] && player.x < canvas.width - 64) player.x += 3;
+
+  if (keys[" "] && !attacking) {
+    attack(player, enemy);
+    attacking = true;
+    setTimeout(() => attacking = false, 300);
+  }
+
+  enemyAI();
+
+  drawSprite(player.x, player.y, PALETTE.player);
+  drawSprite(enemy.x, enemy.y, PALETTE.enemy);
+
+  drawHP(20, 20, player.hp, "red");
+  drawHP(480, 20, enemy.hp, "blue");
+
+  if (player.hp <= 0) {
+    status.innerText = "你輸了 😢";
+    return;
+  }
+  if (enemy.hp <= 0) {
+    status.innerText = "你贏了 🎉";
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
